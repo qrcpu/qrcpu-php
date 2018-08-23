@@ -1,5 +1,5 @@
 {
-    "name": "qrcpu-php/qrcpu-php",
+    "name": "qrcpu/qrcpu-php",
     "description": "qrcpu php SDK",
     "homepage": "http://www.qrcpu.com/",
     "type": "library",
@@ -12,8 +12,5 @@
     ],
     "require": {
         "php":">=5.3"
-    },
-    "require-dev" : {
-       "composer/composer": "1.0.*@dev"
     }
 }
