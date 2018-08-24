@@ -6,11 +6,9 @@
     "license": "MIT",
     "authors": [
         {
-            "name": "qrcpu",
+            "name": "qrcpu.com",
             "homepage": "http://www.qrcpu.com"
         }
     ],
-    "require": {
-        "php":">=5.3"
-    }
+    "minimum-stability": "dev"
 }
