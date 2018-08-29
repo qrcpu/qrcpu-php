@@ -42,12 +42,12 @@ namespace qrcpu;
 
 class qrcpuCOM
 {
-	public $is_test = true;//开启后返回测试信息,免走接口
+	public $is_test = false;//开启后返回测试信息,免走接口
 	public $appcode = '';
 	public $cpu_id = '';
 	public $cpu_key = '';
 	public $timestamp = 0;
-	public $host = 'http://cpu.market.alicloudapi.com';
+	public $host = 'http://qrapi.market.alicloudapi.com';
 
 	
 	public function __construct($config)
@@ -100,10 +100,14 @@ class qrcpuCOM
 		
 		return $content;
 	}
+	
 
-
+	/*
+		获取全部分类信息
+	*/
 	public function category(){
 		//test
+
 		if($this->is_test)
 		{
 			return json_decode('{"status":1,"count":1,"data":[{"cat_id":29,"cat_name":"分类11"}],"msg":"success"}',true);
@@ -119,7 +123,7 @@ class qrcpuCOM
 		$query_data = [
 			'signature'=>md5($this->cpu_key . $this->timestamp),//简易签名
 		];
-		$this->curl_request($path,$query_data);
+		$content = $this->curl_request($path,$query_data);
 	
 		//解析json
 		$content = json_decode($content,true);
@@ -130,7 +134,9 @@ class qrcpuCOM
 
 
 	}
-
+	/*
+		获取模板列表
+	*/
 	public function template($cat_id = 0 , $kwd = '',$page_index=1,$page_size=10){
 		
 
@@ -145,14 +151,26 @@ class qrcpuCOM
 		$error_rs = [
 			'status'=>0,
 			'data'=>'',
-			'msg'=>'暂时数据',
+			'msg'=>'暂无数据',
 		];
+
+		if($page_index<=0){
+			$page_index = 1;
+		}
+		if($page_size<=0){
+			$page_size = 10;
+		}
+
 
 		$path = '/template.html';
 		$query_data = [
+			'cat_id'=>$cat_id,
+			'kwd'=>$kwd,
+			'page_index'=>$page_index,
+			'page_size'=>$page_size,
 			'signature'=>md5($this->cpu_key . $this->timestamp.$cat_id.$kwd.$page_index.$page_size),//简易签名
 		];
-		$this->curl_request($path,$query_data);
+		$content = $this->curl_request($path,$query_data);
 	
 		//解析json
 		$content = json_decode($content,true);
@@ -162,6 +180,9 @@ class qrcpuCOM
 		return $error_rs;
 
 	}
+	/*
+		获取模板详情
+	*/
 	public function template_view($template_id = 0){
 		
 		//test
@@ -179,9 +200,10 @@ class qrcpuCOM
 
 		$path = '/template/view.html';
 		$query_data = [
+			'template_id'=>$template_id,
 			'signature'=>md5($this->cpu_key . $this->timestamp.$template_id),//简易签名
 		];
-		$this->curl_request($path,$query_data);
+		$content = $this->curl_request($path,$query_data);
 	
 		//解析json
 		$content = json_decode($content,true);
@@ -192,6 +214,40 @@ class qrcpuCOM
 
 	}
 
+	/*
+		彩色二维码
+	*/
+	public function qrcustom($param){
+
+		if($this->is_test)
+		{
+			return json_decode('{"status":1,"data":"http:\/\/www.qrcpu.com/static\/images\/logo150x45.png","expires_in":1534839257,"msg":"success"}',true);
+		}
+		
+		$error_rs = [
+			'status'=>0,
+			'data'=>'',
+			'msg'=>'生成失败',
+		];
+
+		$param['qrdata'] = urlencode($param['qrdata']);//注意要 urlencode 
+
+		$path = '/qrcustom.html';
+		$query_data = [
+			'signature'=>md5($this->cpu_key . $this->timestamp),//简易签名
+		];
+		$query_data = array_merge($query_data,$param);
+
+		$content = $this->curl_request($path,$query_data);
+	
+		//解析json
+		$content = json_decode($content,true);
+		if($content){
+			return $content;
+		}
+		return $error_rs;
+
+	}
 
 	/*
 		调用api网关
@@ -225,9 +281,9 @@ class qrcpuCOM
 		$query_data = [
 			'signature'=>md5($this->cpu_key . $this->timestamp . $template_id.$qrdata),//简易签名
 			'template_id'=>$template_id,
-			'qrdata'=>$qrdata,
+			'qrdata'=>urlencode($qrdata),//注意要时行 urlencode
 		];
-		$this->curl_request($path,$query_data);
+		$content = $this->curl_request($path,$query_data);
 	
 		//解析json
 		$content = json_decode($content,true);
@@ -264,7 +320,7 @@ class qrcpuCOM
 		$error_rs = [
 			'status'=>0,
 			'data'=>'',
-			'msg'=>'生成失败',
+			'msg'=>'解码失败',
 		];
 
 
@@ -287,7 +343,7 @@ class qrcpuCOM
 			'imgurl'=>$imgurl,
 			'imgdata'=>$imgdata,
 		];
-		$this->curl_request($path,$query_data);
+		$content = $this->curl_request($path,$query_data);
 	
 		//解析json
 		$content = json_decode($content,true);
@@ -299,7 +355,114 @@ class qrcpuCOM
 	}
 
 
+	/*
+		----不建议使用----
+		wwei.cn 彩色二维码生成 
+		更多参数请看：https://market.aliyun.com/products/57126001/cmapi021204.html
+		$param = [
+				'size'=>$qrsize,
+				'qrdata'=>$qrdata,
+				'xt'=>$xt_index,
+				//码眼 +　前景
+				'p_color'=>$qrcolor,
+				'i_color'=>$qrcolor,
+				'fore_color'=>$qrcolor,
+			]
+	*/
+	public function yunapi_qrencode($param){
+		//test
 
+		if($this->is_test)
+		{
+			return json_decode('{"status":1,"data":"http:\/\/www.qrcpu.com/static\/images\/logo150x45.png","expires_in":1534839257,"msg":"success"}',true);
+		}
+		
+		$error_rs = [
+			'status'=>0,
+			'data'=>'',
+			'msg'=>'获取失败',
+		];
+
+		$param['qrdata'] = urlencode($param['qrdata']);//注意要 urlencode 
+
+		$path = '/yunapi/qrencode.html';
+		$query_data = [
+			'signature'=>md5($this->cpu_key . $this->timestamp),//简易签名
+		];
+		$query_data = array_merge($query_data,$param);
+		$content = $this->curl_request($path,$query_data);
+	
+		//解析json
+		$content = json_decode($content,true);
+		if($content){
+			if($content['status'] ==1)
+			{
+				if(isset($content['data']['qr_filepath']))
+				{
+					//兼容旧版 - 统一返回格式
+					return array(
+						'status'=>1,
+						'data'=>$content['data']['qr_filepath'],
+						'msg'=>'success',
+					);
+				}
+			}
+			
+			return $content;
+			
+		}
+		return $error_rs;
+
+	}
+
+	/*
+		----不建议使用----
+		wwei.cn 解码
+		return array
+	*/
+	public function yunapi_qrdecode($imgurl='',$imgpath=''){
+		
+		//test
+		if($this->is_test)
+		{
+			return json_decode('{"status":1,"data":"test-qrdecode","msg":"success"}',true);
+		}
+		$error_rs = [
+			'status'=>0,
+			'data'=>'',
+			'msg'=>'解码失败',
+		];
+
+
+		$imgdata = '';
+		if(empty($imgurl) && $imgpath){
+			$imgdata = $this->base64_encode_image($imgpath);
+		}
+		//无效参数
+		if(empty($imgurl) && empty($imgdata)){
+			$error_rs['msg'] = 'imgurl和imgpath至少提供一个';
+			return $error_rs;
+		}
+		if($imgdata){
+			$imgurl = '';
+		}
+
+		$path = '/yunapi/qrdecode.html';
+		$query_data = [
+			'signature'=>md5($this->cpu_key . $this->timestamp . $imgurl.$imgdata),//简易签名
+			'imgurl'=>$imgurl,
+			'imgdata'=>$imgdata,
+		];
+		$content = $this->curl_request($path,$query_data);
+	
+		//解析json
+		$content = json_decode($content,true);
+		if($content){
+			return $content;
+		}
+		return $error_rs;
+
+	}
 
 
 }
