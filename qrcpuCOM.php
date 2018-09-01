@@ -341,7 +341,7 @@ class qrcpuCOM
 		$query_data = [
 			'signature'=>md5($this->cpu_key . $this->timestamp . $imgurl.$imgdata),//简易签名
 			'imgurl'=>$imgurl,
-			'imgdata'=>$imgdata,
+			'imgdata'=>urlencode($imgdata),
 		];
 		$content = $this->curl_request($path,$query_data);
 	
