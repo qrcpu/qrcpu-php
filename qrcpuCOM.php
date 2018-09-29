@@ -49,6 +49,11 @@ class qrcpuCOM
 	public $timestamp = 0;
 	public $host = 'http://qrapi.market.alicloudapi.com';
 
+	public $auto_compress = true;//base64前自动压缩图片
+	public $compress_max_width = 600;
+	public $compress_max_height = 800;
+	public $compress_quality = 80;
+
 	
 	public function __construct($config)
 	{
@@ -292,17 +297,115 @@ class qrcpuCOM
 		}
 		return $error_rs;
 	}
+	
+		
+
+	/** 
+	* 简单的压缩图片为 jpg
+	* @param sting $imgsrc 图片保存路径 
+	* @param string $imgdst 压缩后保存路径 [空则替换原图，压缩非jpg格式建议传参数] 
+	* @param int $max_width = 600;//压缩后最大宽度
+	* @param int $max_height = 800;//压缩后最大高度
+	* @param int $quality = 80;//压缩质量
+	*/
+	public function easy_compress($imgsrc,$imgdst='',$max_width = 600,$max_height = 800,$quality = 80){ 
+	
+		if($this->compress_max_width>0)
+		{
+			$max_width = $this->compress_max_width;
+		}
+
+		if($this->compress_max_height>0)
+		{
+			$max_height = $this->compress_max_height;
+		}
+
+		if($this->compress_quality>0)
+		{
+			$quality = $this->compress_quality;
+		}
+		if(empty($imgdst)){
+			$imgdst = $imgsrc;
+		}
+
+		list($width,$height,$img_type) = getimagesize($imgsrc); 
+
+		$new_width = $width;
+		$new_height = $height;
+	 
+		if(($max_width && $width > $max_width) || ($max_height && $height > $max_height))
+		{
+			if($max_width && $width>$max_width)
+			{
+				$widthratio = $max_width/$width;
+				$resizewidth_tag = true;
+			}
+	 
+			if($max_height && $height>$max_height)
+			{
+				$heightratio = $max_height/$height;
+				$resizeheight_tag = true;
+			}
+	 
+			if($resizewidth_tag && $resizeheight_tag)
+			{
+				if($widthratio<$heightratio)
+					$ratio = $widthratio;
+				else
+					$ratio = $heightratio;
+			}
+	 
+			if($resizewidth_tag && !$resizeheight_tag)
+				$ratio = $widthratio;
+			if($resizeheight_tag && !$resizewidth_tag)
+				$ratio = $heightratio;
+	 
+			$new_width = $width * $ratio;
+			$new_height = $height * $ratio;
+		}
+
+	  switch($img_type){ 
+		case 1: 
+			$image_wp=imagecreatetruecolor($new_width, $new_height); 
+			$image = imagecreatefromgif($imgsrc); 
+			imagecopyresampled($image_wp, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height); 
+			imagejpeg($image_wp, $imgdst,75); 
+			imagedestroy($image_wp); 
+			break; 
+		case 2: 
+			$image_wp=imagecreatetruecolor($new_width, $new_height); 
+			$image = imagecreatefromjpeg($imgsrc); 
+			imagecopyresampled($image_wp, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height); 
+			imagejpeg($image_wp, $imgdst,75); 
+			imagedestroy($image_wp); 
+			break; 
+		case 3: 
+			$image_wp=imagecreatetruecolor($new_width, $new_height); 
+			$image = imagecreatefrompng($imgsrc); 
+			imagecopyresampled($image_wp, $image, 0, 0, 0, 0, $new_width, $new_height, $width, $height); 
+			imagejpeg($image_wp, $imgdst,75); 
+			imagedestroy($image_wp); 
+			break; 
+	  } 
+	} 
 
 	
 	/*
 		图片转base64
 	*/
 	public function base64_encode_image ($image_file) {
-	  $base64_image = '';
-	  $image_info = getimagesize($image_file);
-	  $image_data = fread(fopen($image_file, 'r'), filesize($image_file));
-	  $base64_image = 'data:' . $image_info['mime'] . ';base64,' . chunk_split(base64_encode($image_data));
-	  return $base64_image;
+		
+		//是否先压缩
+		if($this->auto_compress)
+		{
+			$this->easy_compress($image_file);
+		}
+	
+		$base64_image = '';
+		$image_info = getimagesize($image_file);
+		$image_data = fread(fopen($image_file, 'r'), filesize($image_file));
+		$base64_image = 'data:' . $image_info['mime'] . ';base64,' . chunk_split(base64_encode($image_data));
+		return $base64_image;
 	}
 
 	/*
@@ -328,6 +431,7 @@ class qrcpuCOM
 		if(empty($imgurl) && $imgpath){
 			$imgdata = $this->base64_encode_image($imgpath);
 		}
+
 		//无效参数
 		if(empty($imgurl) && empty($imgdata)){
 			$error_rs['msg'] = 'imgurl和imgpath至少提供一个';
