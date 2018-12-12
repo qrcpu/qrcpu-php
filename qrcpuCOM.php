@@ -235,7 +235,7 @@ class qrcpuCOM
 			'msg'=>'生成失败',
 		];
 
-		$param['qrdata'] = urlencode($param['qrdata']);//注意要 urlencode 
+		$param['qrdata'] = trim($param['qrdata']);//这里不用 urlencode 
 
 		$path = '/qrcustom.html';
 		$query_data = [
